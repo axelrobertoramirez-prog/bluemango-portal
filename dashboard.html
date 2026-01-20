@@ -1,0 +1,2759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Blue Mango Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        :root {
+            --bg-dark: #161a1e;
+            --bg-sidebar: #1a1f23;
+            --bg-card: #1e2328;
+            --bg-card-hover: #252a30;
+            --bg-input: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --accent: #00c3ff;
+            --accent-bright: #33d4ff;
+            --accent-glow: rgba(0, 195, 255, 0.3);
+            --accent-light: rgba(0, 195, 255, 0.1);
+            --accent-very-light: rgba(0, 195, 255, 0.05);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-accent: rgba(0, 195, 255, 0.3);
+
+            /* Knock status colors */
+            --knock-available: rgba(0, 195, 255, 0.15);
+            --knock-scheduled: rgba(0, 195, 255, 0.3);
+            --knock-active: rgba(0, 195, 255, 0.7);
+            --knock-recent: rgba(0, 195, 255, 0.5);
+            --knock-week-old: rgba(0, 195, 255, 0.35);
+            --knock-old: rgba(0, 195, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .dashboard-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent) 0%, #0099cc 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 22px;
+            height: 22px;
+            color: #fff;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .logo-name span {
+            color: var(--accent);
+        }
+
+        .logo-badge {
+            font-size: 0.7rem;
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        /* User Info */
+        .user-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--accent) 0%, #0099cc 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: var(--accent);
+            text-transform: capitalize;
+        }
+
+        .user-location {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Time Filter */
+        .filter-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filter-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 10px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Stats */
+        .stats-section {
+            padding: 20px;
+            flex: 1;
+        }
+
+        .stats-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-accent);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .stat-icon.cyan {
+            background: rgba(0, 195, 255, 0.15);
+            color: var(--accent);
+        }
+
+        .stat-icon.green {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .stat-icon.yellow {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .stat-icon.blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .stat-change {
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-change.up {
+            color: var(--success);
+        }
+
+        .stat-change.down {
+            color: var(--error);
+        }
+
+        .stat-change svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Log Button */
+        .log-section {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-log {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent) 0%, #0099cc 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-log:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        .btn-log svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .btn-logout {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-logout:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .btn-logout svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 320px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Map Header */
+        .map-header {
+            padding: 20px 30px;
+            background: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .map-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .map-title span {
+            color: var(--accent);
+        }
+
+        .map-legend {
+            display: flex;
+            gap: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .legend-color.available { background: var(--knock-available); border: 1px solid rgba(0, 195, 255, 0.3); }
+        .legend-color.scheduled { background: var(--knock-scheduled); }
+        .legend-color.active { background: var(--knock-active); }
+        .legend-color.recent { background: var(--knock-recent); }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-dark);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-dark);
+        }
+
+        .map-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Leaflet customization */
+        .leaflet-container {
+            background: var(--bg-dark);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .leaflet-popup-tip {
+            background: var(--bg-card);
+        }
+
+        .leaflet-popup-content {
+            margin: 16px;
+        }
+
+        .popup-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+
+        .popup-stats {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .popup-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .popup-status.available {
+            background: rgba(0, 195, 255, 0.15);
+            color: var(--accent);
+        }
+
+        .popup-status.active {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .popup-status.recent {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        /* Hide Leaflet attribution for cleaner look */
+        .leaflet-control-attribution {
+            display: none;
+        }
+
+        /* Pulsing ring animation - GPU accelerated */
+        @keyframes pulse-ring {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.9;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+
+        .pulse-ring-container {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+            will-change: transform, opacity;
+        }
+
+        .pulse-ring-1 {
+            animation: pulse-ring 2s ease-out infinite;
+        }
+
+        .pulse-ring-2 {
+            animation: pulse-ring 2s ease-out infinite 1s;
+        }
+
+        /* Leaflet tooltip styling */
+        .leaflet-tooltip {
+            background: var(--bg-card) !important;
+            border: 1px solid var(--accent) !important;
+            border-radius: 8px !important;
+            color: var(--text-primary) !important;
+            padding: 8px 14px !important;
+            font-size: 0.85rem !important;
+            font-weight: 500 !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .leaflet-tooltip-top::before {
+            border-top-color: var(--accent) !important;
+        }
+        .leaflet-tooltip-bottom::before {
+            border-bottom-color: var(--accent) !important;
+        }
+        .leaflet-tooltip-left::before {
+            border-left-color: var(--accent) !important;
+        }
+        .leaflet-tooltip-right::before {
+            border-right-color: var(--accent) !important;
+        }
+
+        /* Pulse marker icon styling */
+        .pulse-marker-icon {
+            background: transparent !important;
+            border: none !important;
+            cursor: pointer !important;
+        }
+
+        /* HQ marker styling */
+        .hq-marker-icon {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .hq-tooltip {
+            background: linear-gradient(135deg, #00c3ff 0%, #0099cc 100%) !important;
+            border: none !important;
+            color: #fff !important;
+            font-weight: 600 !important;
+            padding: 8px 14px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 20px rgba(0, 195, 255, 0.4) !important;
+        }
+
+        .hq-tooltip::before {
+            border-top-color: #00c3ff !important;
+        }
+
+        /* Daily Bonus Button */
+        .btn-bonus {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+            animation: bonus-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes bonus-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.7); }
+        }
+
+        .btn-bonus:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.5);
+        }
+
+        .btn-bonus svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Bonus Modal */
+        .bonus-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .bonus-modal.active {
+            display: flex;
+        }
+
+        .bonus-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 40px;
+        }
+
+        .bonus-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .bonus-header h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .bonus-header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .bonus-close {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+
+        .bonus-close:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        /* Spin Wheel */
+        .wheel-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .wheel-section.hidden {
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none;
+            position: absolute;
+            visibility: hidden;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 340px;
+            height: 340px;
+            margin: 0 auto 40px;
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.4),
+                        0 0 60px rgba(245, 158, 11, 0.2);
+            background: conic-gradient(
+                #f59e0b 0deg 45deg,
+                #10b981 45deg 90deg,
+                #3b82f6 90deg 135deg,
+                #8b5cf6 135deg 180deg,
+                #ec4899 180deg 225deg,
+                #ef4444 225deg 270deg,
+                #06b6d4 270deg 315deg,
+                #84cc16 315deg 360deg
+            );
+            border: 5px solid #fbbf24;
+        }
+
+        .wheel.spinning {
+            transition: transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+
+        .wheel-emoji {
+            position: absolute;
+            font-size: 2rem;
+            transform: translate(-50%, -50%);
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+        }
+
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(145deg, #1e2328, #161a1e);
+            border-radius: 50%;
+            border: 4px solid #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+
+        .wheel-center span {
+            font-size: 1.3rem;
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 40px solid #f59e0b;
+            z-index: 20;
+            filter: drop-shadow(0 4px 10px rgba(245, 158, 11, 0.5));
+        }
+
+        .spin-btn {
+            display: block;
+            margin: 0 auto;
+            padding: 18px 60px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.3rem;
+            font-weight: 800;
+            font-family: inherit;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .spin-btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.6);
+        }
+
+        .spin-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Result Display */
+        .bonus-result {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(145deg, var(--bg-card) 0%, #1a1f23 100%);
+            border-radius: 24px;
+            border: 2px solid #f59e0b;
+            animation: result-pop 0.5s ease-out;
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .bonus-result.show {
+            display: block;
+        }
+
+        .spin-again-btn {
+            margin-top: 25px;
+            padding: 14px 40px;
+            background: transparent;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            color: #f59e0b;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .spin-again-btn:hover {
+            background: #f59e0b;
+            color: #000;
+        }
+
+        @keyframes result-pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .result-emoji {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .result-name {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fbbf24;
+            margin-bottom: 10px;
+        }
+
+        .result-payout {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #fff;
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .result-description {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .result-rules {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: left;
+        }
+
+        .result-rules-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .result-rules ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .result-rules li {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .result-rules li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            top: -10px;
+            z-index: 3000;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Manager only elements */
+        .manager-only {
+            display: none;
+        }
+
+        .role-manager .manager-only {
+            display: block;
+        }
+
+        /* Region Selector (shown when zoomed out) */
+        .region-selector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            padding: 40px;
+        }
+
+        .region-selector h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .region-selector p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: -20px;
+        }
+
+        .regions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 800px;
+        }
+
+        .region-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .region-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .region-card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .region-card.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .region-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--accent-light);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .region-icon svg {
+            width: 30px;
+            height: 30px;
+            color: var(--accent);
+        }
+
+        .region-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .region-reps {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Neighborhood Map (Laredo) */
+        .neighborhood-map {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .neighborhood-map.active {
+            display: block;
+        }
+
+        .map-back-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--accent) 0%, #0099cc 100%);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .map-back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .map-back-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .laredo-map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .laredo-map svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .neighborhood {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .neighborhood:hover {
+            filter: brightness(1.2);
+        }
+
+        .neighborhood text {
+            font-size: 10px;
+            fill: var(--text-primary);
+            font-weight: 500;
+            pointer-events: none;
+        }
+
+        /* Log Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .modal-close svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .date-warning {
+            display: none;
+            padding: 12px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            color: var(--error);
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        .date-warning.show {
+            display: block;
+        }
+
+        .modal-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-cancel {
+            flex: 1;
+            padding: 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-cancel:hover {
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-submit {
+            flex: 1;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent) 0%, #0099cc 100%);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-submit:hover {
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(16, 185, 129, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .success-icon svg {
+            width: 30px;
+            height: 30px;
+            color: var(--success);
+        }
+
+        .success-message h3 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+        .success-message p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 280px;
+            }
+            .main-content {
+                margin-left: 280px;
+            }
+            .regions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .regions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="https://bluemangowater.com" class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-name">Blue<span>Mango</span></span>
+                        <span class="logo-badge">Door Knocker Dashboard</span>
+                    </div>
+                </a>
+            </div>
+
+            <div class="user-section">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">D</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">Demo User</div>
+                        <div class="user-role" id="userRole">Canvasser</div>
+                        <div class="user-location" id="userLocationDisplay">Laredo, TX</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-title">Time Period</div>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-period="yesterday">Yesterday</button>
+                    <button class="filter-btn" data-period="week">Week</button>
+                    <button class="filter-btn" data-period="month">Month</button>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <div class="stats-title">Your Performance</div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon cyan">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                        </div>
+                        <div class="stat-change up">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="18 15 12 9 6 15"/>
+                            </svg>
+                            +12%
+                        </div>
+                    </div>
+                    <div class="stat-value" id="doorsKnocked">0</div>
+                    <div class="stat-label">Doors Knocked</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon green">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <div class="stat-change up">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="18 15 12 9 6 15"/>
+                            </svg>
+                            +8%
+                        </div>
+                    </div>
+                    <div class="stat-value" id="appointments">0</div>
+                    <div class="stat-label">Appointments Made</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon yellow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
+                        <div class="stat-change down">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                            -3%
+                        </div>
+                    </div>
+                    <div class="stat-value" id="presentations">0</div>
+                    <div class="stat-label">Presentations</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <div class="stat-change up">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="18 15 12 9 6 15"/>
+                            </svg>
+                            +15%
+                        </div>
+                    </div>
+                    <div class="stat-value" id="closings">0</div>
+                    <div class="stat-label">Closings</div>
+                </div>
+            </div>
+
+            <div class="log-section">
+                <button class="btn-bonus manager-only" onclick="openBonusModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="8" r="6"/>
+                        <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+                    </svg>
+                    Daily Bonuses
+                </button>
+                <button class="btn-log" onclick="openLogModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Log Today's Numbers
+                </button>
+                <button class="btn-logout" onclick="logout()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="map-header">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="map-back-btn" id="mapBackBtn" onclick="goBack()" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back
+                    </button>
+                    <h1 class="map-title">Territory Map - <span id="currentRegion">Select Region</span></h1>
+                </div>
+                <div class="map-legend">
+                    <div class="legend-item">
+                        <div class="legend-color available"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color scheduled"></div>
+                        <span>Scheduled</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color active"></div>
+                        <span>Active</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color recent"></div>
+                        <span>Recently Knocked</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Log Modal -->
+    <div class="modal-overlay" id="logModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Log Daily Numbers</h3>
+                <button class="modal-close" onclick="closeLogModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="logFormContainer">
+                <form id="logForm">
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-input" id="logDate" required>
+                        <div class="date-warning" id="dateWarning">
+                            You have already submitted data for this date.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Doors Knocked</label>
+                        <input type="number" class="form-input" id="logDoors" min="0" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Appointments Made</label>
+                        <input type="number" class="form-input" id="logAppointments" min="0" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Presentations</label>
+                        <input type="number" class="form-input" id="logPresentations" min="0" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Closings</label>
+                        <input type="number" class="form-input" id="logClosings" min="0" placeholder="0" required>
+                    </div>
+                </form>
+            </div>
+            <div class="success-message" id="successMessage">
+                <div class="success-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <h3>Numbers Logged!</h3>
+                <p>Your daily performance has been recorded.</p>
+            </div>
+            <div class="modal-footer" id="modalFooter">
+                <button type="button" class="btn-cancel" onclick="closeLogModal()">Cancel</button>
+                <button type="submit" class="btn-submit" id="submitBtn" onclick="submitLog()">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Bonus Modal -->
+    <div class="bonus-modal" id="bonusModal">
+        <div class="bonus-container">
+            <button class="bonus-close" onclick="closeBonusModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+
+            <!-- Wheel Section (hides after spin) -->
+            <div class="wheel-section" id="wheelSection">
+                <div class="bonus-header">
+                    <h2>🎰 SPIN TO WIN 🎰</h2>
+                    <p>Today's bonus challenge awaits!</p>
+                </div>
+
+                <div class="wheel-container">
+                    <div class="wheel-pointer"></div>
+                    <div class="wheel" id="wheel">
+                        <!-- Emojis will be generated by JS -->
+                    </div>
+                    <div class="wheel-center"><span>💰</span></div>
+                </div>
+
+                <button class="spin-btn" id="spinBtn" onclick="spinWheel()">
+                    🎲 SPIN THE WHEEL 🎲
+                </button>
+            </div>
+
+            <!-- Result Section (shows after spin) -->
+            <div class="bonus-result" id="bonusResult">
+                <div class="result-emoji" id="resultEmoji"></div>
+                <div class="result-name" id="resultName"></div>
+                <div class="result-payout" id="resultPayout"></div>
+                <p class="result-description" id="resultDescription"></p>
+                <div class="result-rules">
+                    <div class="result-rules-title">Rules</div>
+                    <ul id="resultRules"></ul>
+                </div>
+                <button class="spin-again-btn" onclick="resetWheel()">🎲 Spin Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        if (!sessionStorage.getItem('bm_logged_in')) {
+            window.location.href = 'login.html';
+        }
+
+        // Get user info
+        const userName = sessionStorage.getItem('bm_user_name') || 'Demo User';
+        const userRole = sessionStorage.getItem('bm_user_role') || 'canvasser';
+        const userLocation = sessionStorage.getItem('bm_user_location') || 'laredo';
+
+        // Update UI with user info
+        document.getElementById('userName').textContent = userName;
+        document.getElementById('userRole').textContent = userRole;
+        document.getElementById('userAvatar').textContent = userName.charAt(0).toUpperCase();
+
+        // Add role class to body for manager-only elements
+        if (userRole === 'manager' || userRole === 'sales manager') {
+            document.body.classList.add('role-manager');
+        }
+
+        const locationNames = {
+            'laredo': 'Laredo, TX',
+            'eagle-pass': 'Eagle Pass, TX',
+            'zapata': 'Zapata, TX',
+            'rgv': 'Rio Grande Valley, TX',
+            'san-antonio': 'San Antonio, TX',
+            'austin': 'Austin, TX'
+        };
+        document.getElementById('userLocationDisplay').textContent = locationNames[userLocation] || userLocation;
+
+        // Sample data storage
+        let loggedDates = JSON.parse(localStorage.getItem('bm_logged_dates') || '[]');
+        let performanceData = JSON.parse(localStorage.getItem('bm_performance') || '{}');
+
+        // Initialize stats
+        function updateStats(period) {
+            const demoData = {
+                yesterday: { doors: 45, appointments: 8, presentations: 5, closings: 2 },
+                week: { doors: 312, appointments: 52, presentations: 38, closings: 15 },
+                month: { doors: 1240, appointments: 198, presentations: 142, closings: 58 }
+            };
+
+            const data = demoData[period] || demoData.yesterday;
+
+            document.getElementById('doorsKnocked').textContent = data.doors;
+            document.getElementById('appointments').textContent = data.appointments;
+            document.getElementById('presentations').textContent = data.presentations;
+            document.getElementById('closings').textContent = data.closings;
+        }
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                updateStats(this.dataset.period);
+            });
+        });
+
+        updateStats('yesterday');
+
+        // ========== LEAFLET MAP ==========
+        let currentZoomLevel = 'us'; // us, texas, city, neighborhood
+        let currentNeighborhood = null;
+        let neighborhoodLayers = [];
+        let texasLayer = null;
+        let usLayer = null;
+        let cityMarkers = [];
+        let pulseMarkers = [];
+
+        // Create pulsing marker HTML - just rings, no center dot
+        function createPulseMarkerHTML(size = 20) {
+            return `
+                <div class="pulse-ring-container" style="width: ${size * 3}px; height: ${size * 3}px;">
+                    <div class="pulse-ring pulse-ring-1" style="width: ${size}px; height: ${size}px;"></div>
+                    <div class="pulse-ring pulse-ring-2" style="width: ${size}px; height: ${size}px;"></div>
+                </div>
+            `;
+        }
+
+        // Create a pulsing marker
+        function createPulseMarker(latlng, size = 20, onClick = null) {
+            const icon = L.divIcon({
+                html: createPulseMarkerHTML(size),
+                className: 'pulse-marker-icon',
+                iconSize: [size * 2.5, size * 2.5],
+                iconAnchor: [size * 1.25, size * 1.25]
+            });
+
+            const marker = L.marker(latlng, { icon: icon }).addTo(map);
+
+            if (onClick) {
+                marker.on('click', onClick);
+            }
+
+            return marker;
+        }
+
+        // Initialize map centered on USA - locked navigation (no manual zoom)
+        const map = L.map('map', {
+            zoomControl: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            touchZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            dragging: false
+        }).setView([39.8283, -98.5795], 4);
+
+        // Dark map tiles
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // US Outline (accurate simplified continental US)
+        const usOutline = [
+            // Pacific Northwest
+            [48.99, -123.05], [49.0, -117.03], [49.0, -104.05],
+            // Northern border
+            [49.0, -95.15], [49.38, -95.15], [49.38, -94.82], [48.72, -94.68],
+            [48.65, -93.85], [48.02, -92.98], [47.73, -92.09], [48.07, -90.80],
+            [47.98, -89.49], [48.30, -88.37], [46.55, -84.87], [46.49, -84.56],
+            [46.27, -84.12], [45.99, -83.59], [43.50, -82.42], [42.00, -82.67],
+            [41.68, -83.07], [41.50, -82.69], [42.33, -79.76], [43.64, -79.06],
+            [43.64, -76.80], [44.99, -74.98], [45.01, -71.50], [47.46, -69.23],
+            // East coast
+            [47.35, -68.38], [44.81, -66.95], [43.75, -70.00], [42.05, -70.18],
+            [41.24, -70.00], [41.31, -72.07], [40.63, -73.30], [40.50, -74.22],
+            [39.50, -74.90], [38.93, -74.96], [38.45, -75.06], [37.95, -75.62],
+            [37.04, -75.97], [35.22, -75.54], [33.85, -77.95], [32.03, -80.90],
+            [30.36, -81.43], [29.00, -80.86], [25.12, -80.38],
+            // Florida
+            [24.55, -81.80], [24.96, -80.45], [25.79, -80.05],
+            // Gulf coast
+            [26.10, -81.80], [27.86, -82.63], [28.79, -82.67], [29.69, -83.29],
+            [29.92, -84.04], [29.55, -85.38], [30.28, -86.26], [30.15, -88.10],
+            [30.21, -89.02], [29.09, -89.35], [29.38, -90.77], [29.07, -91.30],
+            [29.47, -92.77], [29.56, -93.84], [29.77, -94.75], [28.95, -95.30],
+            [28.44, -96.41], [27.28, -97.02], [26.00, -97.15],
+            // Mexico border
+            [25.84, -97.40], [26.06, -98.20], [26.40, -99.02], [27.78, -99.45],
+            [29.76, -101.40], [29.77, -102.31], [29.18, -102.98], [29.55, -103.10],
+            [30.63, -103.96], [31.08, -103.81], [31.78, -106.42], [31.78, -108.21],
+            [31.33, -111.07], [32.49, -114.81], [32.72, -117.13],
+            // West coast
+            [33.05, -117.30], [34.45, -120.47], [35.79, -121.49], [36.98, -122.03],
+            [38.02, -122.84], [38.91, -123.71], [40.44, -124.41], [41.99, -124.21],
+            [43.37, -124.23], [46.27, -124.02], [48.39, -124.69], [48.99, -123.05]
+        ];
+
+        // Texas Outline (accurate)
+        const texasOutline = [
+            // Northwest corner
+            [36.50, -103.04], [36.50, -100.00],
+            // Panhandle east side down
+            [34.56, -100.00], [34.31, -99.19], [34.40, -99.57],
+            // Oklahoma border / Red River
+            [33.96, -98.09], [33.84, -97.21], [33.83, -96.50], [33.69, -96.37],
+            [33.73, -95.94], [33.88, -95.43], [33.59, -94.92], [33.57, -94.48],
+            // Louisiana border
+            [31.99, -94.04], [31.17, -93.82], [30.11, -93.76], [29.78, -93.86],
+            // Gulf coast
+            [29.58, -93.84], [29.38, -94.90], [29.30, -94.72], [29.55, -95.02],
+            [29.02, -95.15], [28.64, -96.20], [28.16, -96.79], [27.68, -97.15],
+            [27.28, -97.38], [26.30, -97.17], [25.97, -97.17],
+            // Mexico border / Rio Grande
+            [25.96, -97.40], [26.02, -97.67], [26.06, -97.86], [26.26, -98.32],
+            [26.43, -99.11], [27.02, -99.44], [27.50, -99.50], [27.78, -99.69],
+            [28.20, -99.87], [28.64, -100.34], [29.17, -100.70], [29.37, -100.96],
+            [29.49, -101.30], [29.77, -101.45], [29.78, -102.07], [29.55, -102.37],
+            [29.77, -102.84], [29.22, -102.90], [29.20, -103.15], [29.01, -103.26],
+            [29.13, -103.43], [29.32, -103.74], [29.48, -103.94], [29.63, -104.11],
+            [29.92, -104.46], [30.38, -104.68], [30.57, -104.88], [30.92, -105.39],
+            [31.08, -105.78], [31.37, -106.02], [31.75, -106.38], [31.78, -106.53],
+            // New Mexico border
+            [32.00, -106.62], [32.00, -103.07], [36.50, -103.04]
+        ];
+
+        // City locations in Texas
+        const cities = [
+            { name: 'Laredo', coords: [27.5306, -99.4803], active: true },
+            { name: 'Eagle Pass', coords: [28.7091, -100.4995], active: false },
+            { name: 'Zapata', coords: [26.9073, -99.2714], active: false },
+            { name: 'Rio Grande Valley', coords: [26.2034, -98.2300], active: false },
+            { name: 'San Antonio', coords: [29.4241, -98.4936], active: false },
+            { name: 'Austin', coords: [30.2672, -97.7431], active: false }
+        ];
+
+        // Laredo Neighborhoods - Accurate boundaries from map editor
+        const laredoNeighborhoods = [
+            {
+                name: 'New San Isidro',
+                area: 'North',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.608485, -99.451804], [27.613277, -99.458499], [27.618220, -99.464936],
+                    [27.625406, -99.462276], [27.628867, -99.454122], [27.626091, -99.450388],
+                    [27.621490, -99.447942], [27.610767, -99.445453]
+                ]
+            },
+            {
+                name: 'Springfield',
+                area: 'North',
+                status: 'scheduled',
+                lastKnocked: null,
+                coords: [
+                    [27.597836, -99.480965], [27.600927, -99.479431], [27.603603, -99.481148],
+                    [27.602229, -99.485638], [27.603294, -99.493518], [27.598179, -99.494634],
+                    [27.594261, -99.493797], [27.592360, -99.492466], [27.592169, -99.487488],
+                    [27.593634, -99.483883]
+                ]
+            },
+            {
+                name: 'Alexander',
+                area: 'North',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.567140, -99.457684], [27.575319, -99.457469], [27.577563, -99.452963],
+                    [27.581063, -99.453049], [27.582546, -99.448500], [27.579865, -99.447534],
+                    [27.581747, -99.442170], [27.579142, -99.441204], [27.575718, -99.442964],
+                    [27.562518, -99.446247], [27.563374, -99.452984]
+                ]
+            },
+            {
+                name: 'Old San Isidro',
+                area: 'North',
+                status: 'active',
+                lastKnocked: new Date(),
+                coords: [
+                    [27.596524, -99.462619], [27.591865, -99.477811], [27.595022, -99.478734],
+                    [27.598730, -99.469292], [27.600974, -99.470365], [27.599206, -99.475429],
+                    [27.600442, -99.476652], [27.602914, -99.475236], [27.605956, -99.471245],
+                    [27.607420, -99.469099], [27.606013, -99.467382], [27.609740, -99.465666],
+                    [27.609883, -99.458354], [27.608114, -99.457490], [27.609341, -99.455452],
+                    [27.601583, -99.448371], [27.599947, -99.450967]
+                ]
+            },
+            {
+                name: 'Plantation',
+                area: 'North',
+                status: 'recent',
+                lastKnocked: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+                coords: [
+                    [27.589165, -99.477189], [27.575471, -99.470301], [27.583725, -99.447341],
+                    [27.586255, -99.440582], [27.601183, -99.448221], [27.597247, -99.458928],
+                    [27.594261, -99.467018]
+                ]
+            },
+            {
+                name: 'Del Mar',
+                area: 'Central',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.573655, -99.475021], [27.569689, -99.486051], [27.568757, -99.492745],
+                    [27.571077, -99.493582], [27.573683, -99.495063], [27.573607, -99.499977],
+                    [27.578647, -99.497917], [27.582717, -99.495213], [27.584429, -99.490943],
+                    [27.586198, -99.491222], [27.591085, -99.478819], [27.586179, -99.476244],
+                    [27.583516, -99.474635], [27.579598, -99.472897]
+                ]
+            },
+            {
+                name: 'Del Mar C',
+                area: 'Central',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.568624, -99.488325], [27.562917, -99.486008], [27.566798, -99.474678],
+                    [27.572770, -99.475279]
+                ]
+            },
+            {
+                name: 'Fenwick',
+                area: 'Central',
+                status: 'scheduled',
+                lastKnocked: null,
+                coords: [
+                    [27.562461, -99.485793], [27.557895, -99.483690], [27.559227, -99.480944],
+                    [27.561776, -99.474807], [27.566113, -99.474721], [27.565808, -99.474678],
+                    [27.566683, -99.474764], [27.562537, -99.485664], [27.562803, -99.486008],
+                    [27.562575, -99.485536], [27.563069, -99.485922]
+                ]
+            },
+            {
+                name: 'Regency / JSJ',
+                area: 'Central',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.564667, -99.497380], [27.567406, -99.489055], [27.560178, -99.485579],
+                    [27.557438, -99.494591]
+                ]
+            },
+            {
+                name: 'Mall del Norte',
+                area: 'Central',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.557115, -99.501071], [27.558922, -99.496436], [27.556620, -99.494805],
+                    [27.554604, -99.500835]
+                ]
+            },
+            {
+                name: 'Springfield South',
+                area: 'Central',
+                status: 'recent',
+                lastKnocked: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+                coords: [
+                    [27.552740, -99.495299], [27.551617, -99.482381], [27.545758, -99.483776],
+                    [27.548003, -99.496028], [27.548079, -99.496543], [27.551884, -99.496136]
+                ]
+            },
+            {
+                name: 'Los Ebanos',
+                area: 'Central',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.550932, -99.479764], [27.550171, -99.474313], [27.544959, -99.474292],
+                    [27.545206, -99.480944], [27.545168, -99.480901]
+                ]
+            },
+            {
+                name: 'Lakeside',
+                area: 'East',
+                status: 'active',
+                lastKnocked: new Date(),
+                coords: [
+                    [27.555346, -99.447470], [27.550400, -99.443607], [27.559189, -99.426785],
+                    [27.562270, -99.427128], [27.563107, -99.428759], [27.563944, -99.429960],
+                    [27.565162, -99.430432], [27.559721, -99.443049]
+                ]
+            },
+            {
+                name: 'Summerwind',
+                area: 'Central',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.560368, -99.467146], [27.561833, -99.463531], [27.565599, -99.461128],
+                    [27.568624, -99.462050], [27.567054, -99.466310], [27.565105, -99.467908]
+                ]
+            },
+            {
+                name: 'The Loop',
+                area: 'Central',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.551085, -99.451225], [27.555080, -99.450023], [27.554889, -99.448028],
+                    [27.553044, -99.447041], [27.551465, -99.446332], [27.550286, -99.446139]
+                ]
+            },
+            {
+                name: 'Mines',
+                area: 'West',
+                status: 'recent',
+                lastKnocked: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                coords: [
+                    [27.599681, -99.525468], [27.595364, -99.534009], [27.589982, -99.532099],
+                    [27.582603, -99.527657], [27.577506, -99.524953], [27.583250, -99.510190],
+                    [27.591656, -99.512143], [27.594451, -99.513388], [27.598559, -99.515619],
+                    [27.600518, -99.516757]
+                ]
+            },
+            {
+                name: 'Aquero',
+                area: 'West',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.600537, -99.531820], [27.598882, -99.536412], [27.604739, -99.539330],
+                    [27.608675, -99.536669], [27.613238, -99.531476], [27.615672, -99.526863],
+                    [27.610558, -99.525855], [27.611774, -99.521778], [27.609569, -99.520812],
+                    [27.607819, -99.526241], [27.606641, -99.525554], [27.605157, -99.529932]
+                ]
+            },
+            {
+                name: 'Lafayette',
+                area: 'South',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.523838, -99.503517], [27.524257, -99.520898], [27.540468, -99.520855],
+                    [27.540316, -99.503345]
+                ]
+            },
+            {
+                name: 'Cantaranas',
+                area: 'South',
+                status: 'scheduled',
+                lastKnocked: null,
+                coords: [
+                    [27.523762, -99.521027], [27.509071, -99.519074], [27.508595, -99.516156],
+                    [27.505607, -99.516156], [27.502371, -99.515791], [27.502067, -99.503710],
+                    [27.509413, -99.503431], [27.517159, -99.503367], [27.523591, -99.503303]
+                ]
+            },
+            {
+                name: 'Saunders',
+                area: 'South',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.540126, -99.502573], [27.536206, -99.469357], [27.531031, -99.467983],
+                    [27.529927, -99.462748], [27.523420, -99.463048], [27.517064, -99.462662],
+                    [27.516950, -99.480300], [27.517064, -99.495749], [27.517520, -99.502273]
+                ]
+            },
+            {
+                name: 'Clark',
+                area: 'South',
+                status: 'recent',
+                lastKnocked: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+                coords: [
+                    [27.517026, -99.502144], [27.503628, -99.502015], [27.501153, -99.497595],
+                    [27.500087, -99.488368], [27.494073, -99.482918], [27.493464, -99.476008],
+                    [27.497271, -99.474936], [27.497309, -99.469743], [27.495215, -99.464464],
+                    [27.496243, -99.463348], [27.498413, -99.462619], [27.501724, -99.462447],
+                    [27.502257, -99.459057], [27.504160, -99.457555], [27.507206, -99.456482],
+                    [27.509451, -99.456868], [27.511697, -99.458327], [27.512801, -99.458542],
+                    [27.513981, -99.461975], [27.515275, -99.462833], [27.516531, -99.462876]
+                ]
+            },
+            {
+                name: 'Santo Niño',
+                area: 'South',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.487373, -99.476609], [27.492169, -99.473863], [27.494301, -99.462276],
+                    [27.490913, -99.461975], [27.489352, -99.462179], [27.489961, -99.458724],
+                    [27.488829, -99.458252], [27.487934, -99.452126], [27.484641, -99.451976],
+                    [27.483899, -99.456772], [27.480653, -99.457330], [27.480596, -99.462190],
+                    [27.474237, -99.462233], [27.474161, -99.468455], [27.475056, -99.468563],
+                    [27.475018, -99.474785], [27.478349, -99.475794]
+                ]
+            },
+            {
+                name: 'Larga Vista',
+                area: 'South',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.494035, -99.431570], [27.495634, -99.433415], [27.500468, -99.433522],
+                    [27.503038, -99.432578], [27.502638, -99.427364], [27.499916, -99.427085],
+                    [27.495329, -99.427171], [27.493026, -99.427536]
+                ]
+            },
+            {
+                name: 'Concord Hills',
+                area: 'South',
+                status: 'active',
+                lastKnocked: new Date(),
+                coords: [
+                    [27.495101, -99.437556], [27.494073, -99.439015], [27.494092, -99.440496],
+                    [27.492188, -99.440303], [27.488686, -99.440088], [27.484479, -99.440260],
+                    [27.478159, -99.440753], [27.470925, -99.446998], [27.466508, -99.449186],
+                    [27.463766, -99.442492], [27.470696, -99.435797], [27.476065, -99.430346],
+                    [27.484479, -99.427342], [27.491560, -99.427471], [27.492188, -99.427536]
+                ]
+            },
+            {
+                name: 'Los Presidentes',
+                area: 'South',
+                status: 'scheduled',
+                lastKnocked: null,
+                coords: [
+                    [27.494473, -99.448178], [27.493121, -99.453113], [27.488572, -99.453285],
+                    [27.488667, -99.450667], [27.488439, -99.449015], [27.483927, -99.449337],
+                    [27.483680, -99.452877], [27.482975, -99.454894], [27.481510, -99.456310],
+                    [27.480215, -99.457040], [27.479435, -99.461353], [27.476122, -99.461160],
+                    [27.471420, -99.461911], [27.464737, -99.461846], [27.463271, -99.453628],
+                    [27.468583, -99.453735], [27.468088, -99.450002], [27.472143, -99.449401],
+                    [27.472410, -99.447985], [27.474390, -99.447963], [27.474732, -99.445131],
+                    [27.476769, -99.444273], [27.480824, -99.444058], [27.483870, -99.443972],
+                    [27.489219, -99.444101], [27.493578, -99.444659], [27.494339, -99.445968]
+                ]
+            },
+            {
+                name: 'Lomas Del Sur',
+                area: 'South',
+                status: 'available',
+                lastKnocked: null,
+                coords: [
+                    [27.473857, -99.468498], [27.472296, -99.468842], [27.472029, -99.476309],
+                    [27.464147, -99.476910], [27.464490, -99.468627], [27.464528, -99.462104],
+                    [27.473590, -99.462404]
+                ]
+            },
+            {
+                name: 'South Laredo',
+                area: 'South',
+                status: 'recent',
+                lastKnocked: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+                coords: [
+                    [27.464185, -99.461975], [27.463880, -99.473004], [27.462928, -99.485192],
+                    [27.454703, -99.489355], [27.444230, -99.493604], [27.437108, -99.494247],
+                    [27.433489, -99.492059], [27.426709, -99.490428], [27.425033, -99.488797],
+                    [27.425262, -99.477468], [27.423967, -99.460688], [27.433146, -99.461374],
+                    [27.437146, -99.459357], [27.436955, -99.453435], [27.444801, -99.453607],
+                    [27.451733, -99.453993], [27.461672, -99.452319]
+                ]
+            }
+        ];
+
+        // Color based on status
+        function getColor(status, lastKnocked) {
+            if (status === 'active') return { fill: 'rgba(0, 195, 255, 0.7)', stroke: '#00c3ff' };
+            if (status === 'scheduled') return { fill: 'rgba(0, 195, 255, 0.4)', stroke: '#00c3ff' };
+            if (status === 'recent') {
+                if (lastKnocked) {
+                    const daysSince = Math.floor((Date.now() - lastKnocked.getTime()) / (1000 * 60 * 60 * 24));
+                    if (daysSince <= 7) return { fill: 'rgba(0, 195, 255, 0.55)', stroke: '#00c3ff' };
+                    if (daysSince <= 14) return { fill: 'rgba(0, 195, 255, 0.4)', stroke: '#00c3ff' };
+                    if (daysSince <= 30) return { fill: 'rgba(0, 195, 255, 0.25)', stroke: '#00c3ff' };
+                }
+                return { fill: 'rgba(0, 195, 255, 0.3)', stroke: '#00c3ff' };
+            }
+            return { fill: 'rgba(0, 195, 255, 0.15)', stroke: 'rgba(0, 195, 255, 0.6)' };
+        }
+
+        // Draw US outline
+        function drawUS() {
+            if (usLayer) map.removeLayer(usLayer);
+            usLayer = L.polygon(usOutline, {
+                color: 'rgba(0, 195, 255, 0.6)',
+                fillColor: 'rgba(0, 195, 255, 0.08)',
+                fillOpacity: 1,
+                weight: 2
+            }).addTo(map);
+
+            usLayer.on('click', function() {
+                zoomToTexas();
+            });
+
+            // Add pulsing marker at center of US (pointing to Texas)
+            const pulseMarker = createPulseMarker([31.0, -99.5], 24, function() {
+                zoomToTexas();
+            });
+            pulseMarker.bindTooltip('Texas', { direction: 'top', offset: [0, -15] });
+            pulseMarkers.push(pulseMarker);
+        }
+
+        // Draw Texas outline
+        function drawTexas() {
+            if (texasLayer) map.removeLayer(texasLayer);
+            texasLayer = L.polygon(texasOutline, {
+                color: '#00c3ff',
+                fillColor: 'rgba(0, 195, 255, 0.12)',
+                fillOpacity: 1,
+                weight: 3
+            }).addTo(map);
+
+            // Add city markers
+            cities.forEach(city => {
+                if (city.active) {
+                    // Pulsing marker for active cities
+                    const marker = createPulseMarker(city.coords, 18, function() {
+                        zoomToCity(city.name.toLowerCase());
+                    });
+                    marker.bindTooltip(city.name, { direction: 'top', offset: [0, -12] });
+                    pulseMarkers.push(marker);
+                } else {
+                    // Dim circle for inactive cities
+                    const marker = L.circleMarker(city.coords, {
+                        radius: 6,
+                        color: 'rgba(0, 195, 255, 0.3)',
+                        fillColor: 'rgba(0, 195, 255, 0.1)',
+                        fillOpacity: 1,
+                        weight: 1
+                    }).addTo(map);
+                    marker.bindTooltip(city.name + ' (Coming Soon)', { direction: 'top' });
+                    cityMarkers.push(marker);
+                }
+            });
+        }
+
+        // Headquarters location
+        const hqLocation = [27.558962, -99.456063]; // 6420 Polaris Drive, Laredo
+        let hqMarker = null;
+
+        // Create HQ marker
+        function createHQMarker() {
+            const hqIcon = L.divIcon({
+                html: `
+                    <div style="position: relative; width: 40px; height: 40px;">
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 36px;
+                            height: 36px;
+                            background: linear-gradient(135deg, #00c3ff 0%, #0099cc 100%);
+                            border-radius: 50%;
+                            border: 3px solid #fff;
+                            box-shadow: 0 0 20px rgba(0, 195, 255, 0.6), 0 4px 15px rgba(0,0,0,0.3);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        ">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width: 18px; height: 18px;">
+                                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                `,
+                className: 'hq-marker-icon',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+
+            hqMarker = L.marker(hqLocation, { icon: hqIcon, zIndexOffset: 1000 }).addTo(map);
+            hqMarker.bindTooltip('Blue Mango HQ', {
+                direction: 'top',
+                offset: [0, -20],
+                className: 'hq-tooltip'
+            });
+        }
+
+        // Calculate polygon area in acres (approximate)
+        function calculatePolygonArea(coords) {
+            let area = 0;
+            const n = coords.length;
+            for (let i = 0; i < n; i++) {
+                const j = (i + 1) % n;
+                area += coords[i][1] * coords[j][0];
+                area -= coords[j][1] * coords[i][0];
+            }
+            area = Math.abs(area) / 2;
+            // Convert from degrees to approximate acres (at Laredo's latitude)
+            // 1 degree lat ≈ 69 miles, 1 degree lng ≈ 60 miles at this latitude
+            // 1 sq mile = 640 acres
+            const sqMiles = area * 69 * 60;
+            return sqMiles * 640;
+        }
+
+        // Estimate doors based on area and density
+        function estimateDoors(coords) {
+            const acres = calculatePolygonArea(coords);
+            // Laredo suburban density: ~3-4 houses per acre average
+            const density = 3.5;
+            const doors = Math.round(acres * density);
+            // Minimum 50, reasonable cap at 2000
+            return Math.max(50, Math.min(doors, 2000));
+        }
+
+        // Draw Laredo neighborhoods
+        function drawLaredoNeighborhoods() {
+            // Clear existing
+            neighborhoodLayers.forEach(layer => map.removeLayer(layer));
+            neighborhoodLayers = [];
+
+            // Add HQ marker
+            if (hqMarker) map.removeLayer(hqMarker);
+            createHQMarker();
+
+            laredoNeighborhoods.forEach(hood => {
+                const colors = getColor(hood.status, hood.lastKnocked);
+                const estDoors = estimateDoors(hood.coords);
+
+                const polygon = L.polygon(hood.coords, {
+                    color: colors.stroke,
+                    fillColor: colors.fill,
+                    fillOpacity: 1,
+                    weight: 2
+                }).addTo(map);
+
+                // Status text
+                let statusText = 'Available';
+                let statusClass = 'available';
+                if (hood.status === 'active') {
+                    statusText = 'Currently Knocking';
+                    statusClass = 'active';
+                } else if (hood.status === 'scheduled') {
+                    statusText = 'Scheduled';
+                    statusClass = 'available';
+                } else if (hood.status === 'recent' && hood.lastKnocked) {
+                    const days = Math.floor((Date.now() - hood.lastKnocked.getTime()) / (1000 * 60 * 60 * 24));
+                    statusText = `Knocked ${days} days ago`;
+                    statusClass = 'recent';
+                }
+
+                polygon.bindPopup(`
+                    <div class="popup-title">${hood.name}</div>
+                    <div class="popup-stats">
+                        Area: ${hood.area}<br>
+                        Est. Doors: ~${estDoors.toLocaleString()}<br>
+                        Last knocked: ${hood.lastKnocked ? hood.lastKnocked.toLocaleDateString() : 'Never'}
+                    </div>
+                    <span class="popup-status ${statusClass}">${statusText}</span>
+                `);
+
+                polygon.on('mouseover', function() {
+                    this.setStyle({ fillOpacity: 0.9, weight: 3 });
+                });
+                polygon.on('mouseout', function() {
+                    this.setStyle({ fillOpacity: 1, weight: 2 });
+                });
+
+                // Click to zoom into neighborhood
+                polygon.on('click', function() {
+                    zoomToNeighborhood(hood);
+                });
+
+                neighborhoodLayers.push(polygon);
+            });
+        }
+
+        // Clear all layers
+        function clearLayers() {
+            if (usLayer) { map.removeLayer(usLayer); usLayer = null; }
+            if (texasLayer) { map.removeLayer(texasLayer); texasLayer = null; }
+            if (hqMarker) { map.removeLayer(hqMarker); hqMarker = null; }
+            cityMarkers.forEach(m => map.removeLayer(m));
+            cityMarkers = [];
+            pulseMarkers.forEach(m => map.removeLayer(m));
+            pulseMarkers = [];
+            neighborhoodLayers.forEach(l => map.removeLayer(l));
+            neighborhoodLayers = [];
+        }
+
+        // Smooth zoom animation settings
+        const zoomOptions = {
+            duration: 1.8,
+            easeLinearity: 0.1
+        };
+
+        // Zoom functions
+        function zoomToUS() {
+            currentZoomLevel = 'us';
+            clearLayers();
+            document.getElementById('mapBackBtn').style.display = 'none';
+            document.getElementById('currentRegion').textContent = 'United States';
+
+            map.flyTo([39.8283, -98.5795], 4, zoomOptions);
+
+            map.once('moveend', function() {
+                if (currentZoomLevel === 'us') {
+                    drawUS();
+                }
+            });
+        }
+
+        function zoomToTexas() {
+            currentZoomLevel = 'texas';
+            clearLayers();
+            document.getElementById('mapBackBtn').style.display = 'flex';
+            document.getElementById('currentRegion').textContent = 'Texas';
+
+            map.flyTo([31.0, -99.5], 6, zoomOptions);
+
+            map.once('moveend', function() {
+                if (currentZoomLevel === 'texas') {
+                    drawTexas();
+                }
+            });
+        }
+
+        function zoomToCity(cityName) {
+            if (cityName === 'laredo') {
+                currentZoomLevel = 'city';
+                currentNeighborhood = null;
+                clearLayers();
+                document.getElementById('mapBackBtn').style.display = 'flex';
+                document.getElementById('currentRegion').textContent = 'Laredo';
+
+                // Enable zoom and pan at city level
+                map.scrollWheelZoom.enable();
+                map.dragging.enable();
+                map.touchZoom.enable();
+                map.doubleClickZoom.enable();
+
+                map.flyTo([27.52, -99.48], 12, zoomOptions);
+
+                map.once('moveend', function() {
+                    if (currentZoomLevel === 'city') {
+                        drawLaredoNeighborhoods();
+                    }
+                });
+            }
+        }
+
+        // Zoom to specific neighborhood
+        function zoomToNeighborhood(hood) {
+            currentZoomLevel = 'neighborhood';
+            currentNeighborhood = hood.name;
+            document.getElementById('currentRegion').textContent = hood.name;
+
+            // Calculate center of neighborhood
+            const lats = hood.coords.map(c => c[0]);
+            const lngs = hood.coords.map(c => c[1]);
+            const centerLat = (Math.max(...lats) + Math.min(...lats)) / 2;
+            const centerLng = (Math.max(...lngs) + Math.min(...lngs)) / 2;
+
+            map.flyTo([centerLat, centerLng], 16, { duration: 1.2, easeLinearity: 0.1 });
+        }
+
+        // Back button functionality based on current level
+        function goBack() {
+            if (currentZoomLevel === 'neighborhood') {
+                currentZoomLevel = 'city';
+                document.getElementById('currentRegion').textContent = 'Laredo';
+                map.flyTo([27.52, -99.48], 12, { duration: 1.2, easeLinearity: 0.1 });
+            } else if (currentZoomLevel === 'city') {
+                // Disable zoom/pan when leaving city level
+                map.scrollWheelZoom.disable();
+                map.dragging.disable();
+                map.touchZoom.disable();
+                map.doubleClickZoom.disable();
+                zoomToTexas();
+            } else if (currentZoomLevel === 'texas') {
+                zoomToUS();
+            }
+        }
+
+        // Initialize with US view
+        drawUS();
+        document.getElementById('currentRegion').textContent = 'United States';
+
+        // Log Modal
+        function openLogModal() {
+            document.getElementById('logModal').classList.add('active');
+            document.getElementById('logFormContainer').style.display = 'block';
+            document.getElementById('successMessage').classList.remove('show');
+            document.getElementById('modalFooter').style.display = 'flex';
+
+            // Set today's date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('logDate').value = today;
+            document.getElementById('logDate').max = today;
+
+            checkDateAvailability();
+        }
+
+        function closeLogModal() {
+            document.getElementById('logModal').classList.remove('active');
+            document.getElementById('logForm').reset();
+        }
+
+        function checkDateAvailability() {
+            const date = document.getElementById('logDate').value;
+            const warning = document.getElementById('dateWarning');
+            const submitBtn = document.getElementById('submitBtn');
+            const inputs = document.querySelectorAll('#logForm input[type="number"]');
+
+            if (loggedDates.includes(date)) {
+                warning.classList.add('show');
+                submitBtn.disabled = true;
+                inputs.forEach(input => input.disabled = true);
+            } else {
+                warning.classList.remove('show');
+                submitBtn.disabled = false;
+                inputs.forEach(input => input.disabled = false);
+            }
+        }
+
+        document.getElementById('logDate').addEventListener('change', checkDateAvailability);
+
+        function submitLog() {
+            const date = document.getElementById('logDate').value;
+
+            if (loggedDates.includes(date)) {
+                return;
+            }
+
+            const data = {
+                date: date,
+                doors: parseInt(document.getElementById('logDoors').value) || 0,
+                appointments: parseInt(document.getElementById('logAppointments').value) || 0,
+                presentations: parseInt(document.getElementById('logPresentations').value) || 0,
+                closings: parseInt(document.getElementById('logClosings').value) || 0,
+                timestamp: new Date().toISOString()
+            };
+
+            // Save to localStorage
+            loggedDates.push(date);
+            localStorage.setItem('bm_logged_dates', JSON.stringify(loggedDates));
+
+            performanceData[date] = data;
+            localStorage.setItem('bm_performance', JSON.stringify(performanceData));
+
+            // Show success
+            document.getElementById('logFormContainer').style.display = 'none';
+            document.getElementById('successMessage').classList.add('show');
+            document.getElementById('modalFooter').style.display = 'none';
+
+            // Close after 2 seconds
+            setTimeout(() => {
+                closeLogModal();
+                updateStats('yesterday');
+            }, 2000);
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        // ========== SPIN THE WHEEL ==========
+        const bonuses = [
+            {
+                name: 'TRIPLE THREAT',
+                emoji: '🎯',
+                payout: '$250 INSTANT',
+                description: 'Set and confirm 3 appointments in the SAME DAY!',
+                rules: ['All 3 appointments must be set today', 'All 3 must be confirmed by end of day', 'Payout is immediate upon confirmation'],
+                color: '#f59e0b'
+            },
+            {
+                name: 'SAME DAY CLOSER',
+                emoji: '⚡',
+                payout: '2X COMMISSION',
+                description: 'Set an appointment AND close it the SAME DAY!',
+                rules: ['Appointment must be set today', 'Must close before midnight', 'Double your setter commission'],
+                color: '#3b82f6'
+            },
+            {
+                name: 'DOUBLE SIT DOWN',
+                emoji: '🪑',
+                payout: '$250 BONUS',
+                description: 'Get 2 sit downs in the SAME DAY!',
+                rules: ['Both presentations must happen today', 'Customer must be present for full presentation', 'Bonus paid at end of day'],
+                color: '#10b981'
+            },
+            {
+                name: 'DOUBLE CLOSE',
+                emoji: '🏆',
+                payout: '$1,000 EXTRA',
+                description: 'Close 2 deals in the SAME DAY!',
+                rules: ['Both closes must happen today', 'Contracts must be signed and verified', 'On TOP of your regular commission'],
+                color: '#8b5cf6'
+            },
+            {
+                name: 'EARLY BIRD',
+                emoji: '🐦',
+                payout: '$100 INSTANT',
+                description: 'Be the FIRST to set and confirm an appointment today!',
+                rules: ['First appointment set today wins', 'Must be confirmed by end of day', 'Only ONE winner per day'],
+                color: '#ec4899'
+            },
+            {
+                name: 'PERFECT ATTENDANCE',
+                emoji: '✅',
+                payout: '$200 BONUS',
+                description: 'ZERO no-shows on all your appointments today!',
+                rules: ['Must have at least 2 appointments', 'All customers must show up', 'Reschedules OK'],
+                color: '#14b8a6'
+            },
+            {
+                name: 'SPEED DEMON',
+                emoji: '🚀',
+                payout: '$100 INSTANT',
+                description: 'Set appointment in FIRST 30 MINUTES and confirm it!',
+                rules: ['Set within first 30 min of shift', 'Must be confirmed by end of day', 'First person wins!'],
+                color: '#f43f5e'
+            },
+            {
+                name: 'TEAM FIGHT',
+                emoji: '👊',
+                payout: '$200 EACH',
+                description: 'Team of 2 with MOST confirmed appointments wins!',
+                rules: ['Teams of exactly 2 people', 'Combined appointments count', 'Ties go to earliest time'],
+                color: '#6366f1'
+            }
+        ];
+
+        let isSpinning = false;
+        let currentRotation = 0;
+
+        // Build the wheel
+        function buildWheel() {
+            const wheel = document.getElementById('wheel');
+            wheel.innerHTML = '';
+            const segmentAngle = 360 / bonuses.length;
+            const radius = 120; // Distance from center for emojis
+
+            bonuses.forEach((bonus, i) => {
+                // Calculate emoji position on the circle
+                const angle = (i * segmentAngle + segmentAngle / 2 - 90) * (Math.PI / 180);
+                const x = 170 + radius * Math.cos(angle); // 170 = half of 340px wheel
+                const y = 170 + radius * Math.sin(angle);
+
+                const emoji = document.createElement('span');
+                emoji.className = 'wheel-emoji';
+                emoji.textContent = bonus.emoji;
+                emoji.style.left = x + 'px';
+                emoji.style.top = y + 'px';
+                wheel.appendChild(emoji);
+            });
+        }
+
+        function spinWheel() {
+            if (isSpinning) return;
+
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+
+            // Random result
+            const resultIndex = Math.floor(Math.random() * bonuses.length);
+            const segmentAngle = 360 / bonuses.length;
+
+            // Calculate rotation: multiple full spins + land on result
+            const spins = 5 + Math.random() * 3; // 5-8 full spins
+            const targetAngle = 360 - (resultIndex * segmentAngle) - (segmentAngle / 2);
+            const totalRotation = currentRotation + (spins * 360) + targetAngle - (currentRotation % 360);
+
+            const wheel = document.getElementById('wheel');
+            wheel.classList.add('spinning');
+            wheel.style.transform = `rotate(${totalRotation}deg)`;
+            currentRotation = totalRotation;
+
+            // After spin completes: hide wheel, show only the result card
+            setTimeout(() => {
+                isSpinning = false;
+                wheel.classList.remove('spinning');
+
+                // Hide the wheel section
+                document.getElementById('wheelSection').classList.add('hidden');
+
+                // Show the result card
+                showResult(bonuses[resultIndex]);
+                launchConfetti();
+            }, 5000);
+        }
+
+        function showResult(bonus) {
+            document.getElementById('resultEmoji').textContent = bonus.emoji;
+            document.getElementById('resultName').textContent = bonus.name;
+            document.getElementById('resultPayout').textContent = bonus.payout;
+            document.getElementById('resultDescription').textContent = bonus.description;
+
+            const rulesList = document.getElementById('resultRules');
+            rulesList.innerHTML = bonus.rules.map(rule => `<li>${rule}</li>`).join('');
+
+            document.getElementById('bonusResult').classList.add('show');
+        }
+
+        function resetWheel() {
+            // Hide result
+            document.getElementById('bonusResult').classList.remove('show');
+
+            // Reset wheel rotation
+            const wheel = document.getElementById('wheel');
+            wheel.style.transition = 'none';
+            wheel.style.transform = 'rotate(0deg)';
+            currentRotation = 0;
+
+            // Force reflow then restore transition
+            wheel.offsetHeight;
+            wheel.style.transition = '';
+
+            // Show wheel section again
+            document.getElementById('wheelSection').classList.remove('hidden');
+            document.getElementById('spinBtn').disabled = false;
+        }
+
+        function launchConfetti() {
+            const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#fbbf24'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+                    document.body.appendChild(confetti);
+
+                    setTimeout(() => confetti.remove(), 4000);
+                }, i * 30);
+            }
+        }
+
+        function openBonusModal() {
+            document.getElementById('bonusModal').classList.add('active');
+            // Reset to initial state
+            document.getElementById('bonusResult').classList.remove('show');
+            document.getElementById('wheelSection').classList.remove('hidden');
+            document.getElementById('spinBtn').disabled = false;
+            // Reset wheel rotation
+            const wheel = document.getElementById('wheel');
+            wheel.style.transition = 'none';
+            wheel.style.transform = 'rotate(0deg)';
+            currentRotation = 0;
+            wheel.offsetHeight;
+            wheel.style.transition = '';
+            buildWheel();
+        }
+
+        function closeBonusModal() {
+            document.getElementById('bonusModal').classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('logModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLogModal();
+            }
+        });
+
+        document.getElementById('bonusModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeBonusModal();
+            }
+        });
+
+        // Keyboard
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('bonusModal').classList.contains('active')) {
+                if (e.key === 'Escape') closeBonusModal();
+            }
+        });
+    </script>
+</body>
+</html>
